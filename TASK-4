@@ -1,0 +1,81 @@
+#FRAUD DETECTION IN FINANCIAL TRANSACTIONS
+#Develop a fraud detection system using machine learning techniques to identify fraudulent transactions in financial datasets. Experiment with algorithms like isolation forest, local outlier factor, or deep learning models for anomaly detection.
+
+
+import pandas as pd
+import numpy as np
+from sklearn.ensemble import IsolationForest
+from sklearn.neighbors import LocalOutlierFactor
+from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import train_test_split
+import matplotlib.pyplot as plt
+
+# Load the dataset
+data_path = 'D:\\Documents\\Downloads\\bank_transactions_data_2.csv'
+data = pd.read_csv(data_path)
+
+# Display basic information about the dataset
+print("Dataset Info:")
+print(data.info())
+
+print("\nFirst 5 rows of the dataset:")
+print(data.head())
+
+# Data preprocessing
+# Handle missing values, if any
+data = data.dropna()
+
+# Convert categorical variables to numerical, if necessary
+categorical_cols = data.select_dtypes(include=['object']).columns
+for col in categorical_cols:
+    data[col] = pd.factorize(data[col])[0]
+
+# Scale the data
+scaler = StandardScaler()
+data_scaled = scaler.fit_transform(data)
+
+# Split into train and test sets
+train_data, test_data = train_test_split(data_scaled, test_size=0.3, random_state=42)
+
+# Apply Isolation Forest
+iso_forest = IsolationForest(contamination=0.05, random_state=42)
+iso_forest.fit(train_data)
+iso_forest_preds = iso_forest.predict(test_data)
+
+# Apply Local Outlier Factor
+lof = LocalOutlierFactor(n_neighbors=20, contamination=0.05)
+lof_preds = lof.fit_predict(test_data)
+
+# Map predictions to labels (1: normal, -1: fraud)
+def map_preds_to_labels(predictions):
+    return np.where(predictions == 1, 'Normal', 'Fraudulent')
+
+iso_forest_labels = map_preds_to_labels(iso_forest_preds)
+lof_labels = map_preds_to_labels(lof_preds)
+
+# Create a results dataframe
+results = pd.DataFrame({
+    'IsolationForest': iso_forest_labels,
+    'LocalOutlierFactor': lof_labels
+})
+
+print("\nFraud Detection Results:")
+print(results.value_counts())
+
+# Visualize results
+fig, ax = plt.subplots(1, 2, figsize=(12, 6))
+
+# Isolation Forest result distribution
+ax[0].bar(results['IsolationForest'].value_counts().index, results['IsolationForest'].value_counts().values)
+ax[0].set_title('Isolation Forest Detection Results')
+ax[0].set_ylabel('Number of Transactions')
+ax[0].set_xlabel('Transaction Type')
+
+# Local Outlier Factor result distribution
+ax[1].bar(results['LocalOutlierFactor'].value_counts().index, results['LocalOutlierFactor'].value_counts().values)
+ax[1].set_title('Local Outlier Factor Detection Results')
+ax[1].set_ylabel('Number of Transactions')
+ax[1].set_xlabel('Transaction Type')
+
+plt.tight_layout()
+plt.show()
